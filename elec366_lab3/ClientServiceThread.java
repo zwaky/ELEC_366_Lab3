@@ -20,6 +20,8 @@ public class ClientServiceThread extends Thread {
 		this.clients = clients;
 		try {
 			this.outToClient = new DataOutputStream(connectionSocket.getOutputStream());
+			broadcastMessage(this.clientName + " connected");
+
 		} catch (IOException e) {
 			System.out.println("Error getting output stream: " + e.getMessage());
 		}
@@ -49,7 +51,7 @@ public class ClientServiceThread extends Thread {
 			}
 
 		} catch (IOException ex) {
-			System.out.println(this.clientName + " has disconnected.");
+			System.out.println(this.clientName + " disconnected.");
 			this.disconnectClient();
 		}
 	}
@@ -64,7 +66,7 @@ public class ClientServiceThread extends Thread {
 			synchronized (clients) {
 				for (ClientServiceThread client : clients) {
 					if (client.getClientName().equals(toClientName)) {
-						client.outToClient.writeBytes(this.clientName + ": " + messageContent + "\n");
+						client.outToClient.writeBytes("-Message," + this.clientName + ": " + messageContent + "\n");
 						break;
 					}
 				}
@@ -75,10 +77,11 @@ public class ClientServiceThread extends Thread {
 	private void broadcastMessage(String message) throws IOException {
 		synchronized (clients) {
 			for (ClientServiceThread client : clients) {
-				if (!client.getClientName().equals(this.clientName)) { // Do not send the message to the sender only the
-																		// other cluents
-					client.outToClient.writeBytes(this.clientName + ": " + message + "\n");
-				}
+				// if (!client.getClientName().equals(this.clientName)) { // Do not send the
+				// message to the sender only the
+				// // other cluents
+				// }
+				client.outToClient.writeBytes("-Message," + this.clientName + ": " + message + "\n");
 			}
 		}
 	}
@@ -91,9 +94,17 @@ public class ClientServiceThread extends Thread {
 		}
 		synchronized (clients) {
 			clients.remove(this);
-			ChatServer.updateClientCountLabel();
+
+			// Notify other clients
+			if (clients.size() != 0) {
+				clients.notify();
+
+				// Notify the server if this was the last client in the list
+			} else {
+				ChatServer.updateClientCountLabel();
+			}
 			try {
-				broadcastMessage(this.clientName + " has left the chat.");
+				broadcastMessage(this.clientName + " disconnected");
 			} catch (IOException e) {
 				System.out.println("Error sending disconnect message: " + e.getMessage());
 			}
@@ -111,6 +122,15 @@ public class ClientServiceThread extends Thread {
 																								// causing problems in
 																								// the Chatsrver
 		outToClient.writeBytes("-Date;" + dateFormatter.format(now) + "\n");
-		outToClient.writeBytes("-Count, " + clients.size() + "\n");
+		outToClient.writeBytes("-Count," + clients.size() + "\n");
+
+		String names = new String("");
+
+		for (ClientServiceThread client : clients) {
+			names = names + client.clientName + ",";
+		}
+		outToClient.writeBytes("-Names," + names + "\n");
+
 	}
+
 }

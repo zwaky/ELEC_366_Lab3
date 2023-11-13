@@ -2,266 +2,211 @@ package elec366_lab3;
 
 import java.io.*;
 import java.net.*;
-
 import javax.swing.*;
-
 import java.awt.Color;
-import java.awt.event.*;
 
-public class client {
+public class Client {
 
 	static Socket clientSocket;
+	static DataOutputStream outToServer;
+	static BufferedReader inFromServer;
 	static JTextArea receivedTextArea;
-	// static JLabel countLabel;
-	// static JLabel dateLabel;
+	static JTextArea connectedClientsTextArea;
+	static JLabel statusLabel;
+	static JTextField clientNameField;
+	static JTextField privateMessage;
+	static JTextArea clientMessages;
+	static JButton sendButton;
+	static JButton connectButton;
+	static JLabel labelSend;
+	static JScrollPane receivedTextAreaScroll;
+	static JScrollPane connectedClientsAreaScroll;
+	static JLabel connectedClientsLabel;
 
 	public static void main(String[] args) throws Exception {
-
 		JFrame frame = new JFrame("Chatting Client");
 		frame.setLayout(null);
-		frame.setBounds(100, 100, 510, 580);
+		frame.setBounds(100, 100, 500, 550);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setVisible(true);
 
-		JLabel statusLabel = new JLabel("Not Connected");
+		statusLabel = new JLabel("Not Connected");
 		statusLabel.setBounds(20, 40, 150, 30);
 		statusLabel.setForeground(Color.RED);
 		frame.getContentPane().add(statusLabel);
 
-		JButton sendButton = new JButton("Send");
-		sendButton.setBounds(400, 490, 75, 30);
-		frame.getContentPane().add(sendButton);
-		sendButton.setVisible(false);
-
-		JButton connectButton = new JButton("Connect");
+		connectButton = new JButton("Connect"); // Initialize connectButton here
 		connectButton.setBounds(300, 20, 100, 30);
 		frame.getContentPane().add(connectButton);
-		connectButton.setVisible(true);
+
+		labelSend = new JLabel("Send to");
+		labelSend.setBounds(20, 370, 300, 30);
+		frame.getContentPane().add(labelSend);
+		labelSend.setVisible(false);
+
+		sendButton = new JButton("Send");
+		sendButton.setBounds(400, 450, 75, 30);
+		sendButton.setVisible(false);
+		frame.getContentPane().add(sendButton);
+		sendButton.addActionListener(e -> sendButtonAction());
+
+		connectButton.addActionListener(e -> connectButtonAction());
 
 		JLabel labelClientName = new JLabel("Client Name:");
 		labelClientName.setBounds(20, 20, 300, 30);
 		frame.getContentPane().add(labelClientName);
-		labelClientName.setVisible(true);
 
-		JLabel labelSend = new JLabel("Send to");
-		labelSend.setBounds(20, 410, 300, 30);
-		frame.getContentPane().add(labelSend);
-		labelSend.setVisible(false);
-
-		JTextField sendTextField = new JTextField();
-		sendTextField.setBounds(20, 450, 360, 80);
-		frame.getContentPane().add(sendTextField);
-		sendTextField.setVisible(false);
-
-		JTextField clientName = new JTextField("");
-		clientName.setBounds(100, 20, 180, 30);
-		frame.getContentPane().add(clientName);
-		clientName.setVisible(true);
+		clientNameField = new JTextField("");
+		clientNameField.setBounds(100, 20, 180, 30);
+		frame.getContentPane().add(clientNameField);
 
 		receivedTextArea = new JTextArea();
-		receivedTextArea.setBounds(20, 60, 450, 300);
-		receivedTextArea.setEditable(true);
+		receivedTextArea.setBounds(20, 60, 320, 300);
+		receivedTextArea.setEditable(false);
 		frame.getContentPane().add(receivedTextArea);
-		receivedTextArea.setVisible(false);
 
-		JTextField privateMessage = new JTextField("");
-		privateMessage.setBounds(100, 410, 180, 30);
-		frame.getContentPane().add(privateMessage);
-		privateMessage.setVisible(false);
-
-		JTextArea clientMessages = new JTextArea("");
-		clientMessages.setBounds(20, 420, 360, 80);
-		clientMessages.setEditable(true);
-		frame.getContentPane().add(clientMessages);
-		clientMessages.setVisible(false);
-
-		JScrollPane receivedTextAreaScroll = new JScrollPane(receivedTextArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		receivedTextAreaScroll.setBounds(20, 100, 460, 300);
+		receivedTextAreaScroll = new JScrollPane(receivedTextArea);
+		receivedTextAreaScroll.setBounds(20, 60, 320, 300);
+		receivedTextAreaScroll.setVisible(true);
 		frame.getContentPane().add(receivedTextAreaScroll);
-		receivedTextAreaScroll.setVisible(false);
 
-		// Action listener when connect button is pressed
-		connectButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				try {
+		connectedClientsTextArea = new JTextArea();
+		connectedClientsTextArea.setBounds(350, 100, 120, 260);
+		connectedClientsTextArea.setEditable(false);
+		connectedClientsTextArea.setVisible(false);
+		frame.getContentPane().add(connectedClientsTextArea);
 
-					if (connectButton.getText().equals("Connect")) { // if pressed to connect
+		connectedClientsAreaScroll = new JScrollPane(connectedClientsTextArea);
+		connectedClientsAreaScroll.setBounds(350, 100, 120, 260);
+		connectedClientsAreaScroll.setVisible(false);
+		frame.getContentPane().add(connectedClientsAreaScroll);
 
-						// create a new socket to connect with the server application
-						clientSocket = new Socket("localhost", 6789);
+		connectedClientsLabel = new JLabel("Connected Clients: ");
+		connectedClientsLabel.setBounds(350, 60, 120, 30);
+		frame.getContentPane().add(connectedClientsLabel);
+		connectedClientsLabel.setVisible(false);
 
-						// send the name
+		privateMessage = new JTextField("");
+		privateMessage.setBounds(100, 370, 180, 30);
+		privateMessage.setVisible(false);
+		frame.getContentPane().add(privateMessage);
 
-						// receive the reply (reject or accepted)
-
-						// if (rejected)
-						// {
-						// reject, display a message rejected
-						// }
-						// else if connected {
-						// call function StartThread
-						StartThread();
-
-						// make the GUI components visible, so the client can send and receive messages
-						sendButton.setVisible(true);
-						// labelSend.setVisible(true);
-						sendTextField.setVisible(true);
-						labelSend.setVisible(true);
-
-						receivedTextArea.setVisible(true);
-						receivedTextAreaScroll.setVisible(true);
-						privateMessage.setVisible(true);
-						// clientMessages.setVisible(true);
-
-						statusLabel.setText("Connected");
-						statusLabel.setForeground(Color.BLUE);
-
-						// change the Connect button text to disconnect
-						connectButton.setText("Disconnect");
-						// }
-
-					} else { // if pressed to disconnect
-
-						// create an output stream and send a Remove message to disconnect from the
-						// server
-						DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
-						outToServer.writeBytes("-Remove\n");
-
-						// close the client's socket
-						clientSocket.close();
-
-						// make the GUI components invisible
-						sendButton.setVisible(false);
-						labelSend.setVisible(false);
-						sendTextField.setVisible(false);
-						receivedTextArea.setVisible(false);
-						receivedTextAreaScroll.setVisible(false);
-						privateMessage.setVisible(false);
-
-						// change the Connect button text to connect
-						connectButton.setText("Connect");
-						statusLabel.setText("Not Connected");
-						statusLabel.setForeground(Color.RED);
-
-					}
-
-				} catch (Exception ex) {
-					System.out.println(ex.toString());
-				}
-			}
-		});
-
-		// Action listener when send button is pressed
-		sendButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				try {
-					// create an output stream
-					DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
-
-					if (!sendTextField.getText().equals("")) { // if the send to textfield has a name then add "@sendTo
-																// name:" to the beginning of the message and send it
-
-						String sendingSentence = "-Compute," + sendTextField.getText() + "\n";
-						outToServer.writeBytes(sendingSentence);
-
-					}
-
-				} catch (Exception ex) {
-					System.out.println(ex.toString());
-				}
-			}
-		});
-
-		// Disconnect on close
-		frame.addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent we) {
-
-				try {
-
-					// create an output stream and send a Remove message to disconnect from the
-					// server
-					DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
-					outToServer.writeBytes("-Remove\n");
-
-					// close the client's socket
-					clientSocket.close();
-
-					// make the GUI components invisible
-					sendButton.setVisible(false);
-					labelSend.setVisible(false);
-					sendTextField.setVisible(false);
-					receivedTextArea.setVisible(false);
-					receivedTextAreaScroll.setVisible(false);
-
-					// change the Connect button text to connect
-					connectButton.setText("Connect");
-					statusLabel.setText("Not Connected");
-					statusLabel.setForeground(Color.RED);
-
-					System.exit(0);
-
-				} catch (Exception ex) {
-					System.out.println(ex.toString());
-				}
-
-			}
-		});
+		clientMessages = new JTextArea("");
+		clientMessages.setBounds(20, 420, 360, 80);
+		clientMessages.setVisible(false);
+		frame.getContentPane().add(clientMessages);
 
 		frame.setVisible(true);
-
 	}
 
-	// Thread to always read messages from the server and print them in the textArea
-	private static void StartThread() {
+	private static void connectButtonAction() {
+		try {
+			if (connectButton.getText().equals("Connect")) {
+				clientSocket = new Socket("localhost", 6789);
+				outToServer = new DataOutputStream(clientSocket.getOutputStream());
+				inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
+				String clientName = clientNameField.getText();
+				outToServer.writeBytes(clientName + "\n");
 
-				try {
+				new Thread(() -> listenForServerMessages()).start();
 
-					// create a buffer reader and connect it to the socket's input stream
-					BufferedReader inFromServer = new BufferedReader(
-							new InputStreamReader(clientSocket.getInputStream()));
+				statusLabel.setText("Connected");
+				statusLabel.setForeground(Color.BLUE);
+				connectButton.setText("Disconnect");
 
-					String receivedSentence;
+				clientNameField.setEditable(false);
 
-					// always read received messages and append them to the textArea
-					while (true) {
+				labelSend.setVisible(true);
+				privateMessage.setVisible(true);
+				sendButton.setVisible(true);
+				clientMessages.setVisible(true);
+				connectedClientsTextArea.setVisible(true);
+				connectedClientsAreaScroll.setVisible(true);
+				connectedClientsLabel.setVisible(true);
 
-						receivedSentence = inFromServer.readLine();
-						// System.out.println(receivedSentence);
+			} else {
+				// outToServer.writeBytes("-Remove\n");
+				clientSocket.close();
 
-						if (receivedSentence.startsWith("-Date")) {
+				statusLabel.setText("Not Connected");
+				statusLabel.setForeground(Color.RED);
+				connectButton.setText("Connect");
 
-							// String[] strings = receivedSentence.split(";");
-							// dateLabel.setText("Server's Date: " + strings[1]);
+				clientNameField.setEditable(true);
 
-						} else if (receivedSentence.startsWith("-Results")) {
+				labelSend.setVisible(false);
+				privateMessage.setVisible(false);
+				sendButton.setVisible(false);
+				clientMessages.setVisible(false);
+				connectedClientsTextArea.setVisible(false);
+				connectedClientsAreaScroll.setVisible(false);
+				connectedClientsLabel.setVisible(false);
 
-							String[] strings = receivedSentence.split(",");
-							receivedTextArea.setText("Sum is: " + strings[1] + "\n");
-							receivedTextArea.append("Average is: " + strings[2] + "\n");
-							receivedTextArea.append("Minimum is: " + strings[3] + "\n");
-							receivedTextArea.append("Maximum is: " + strings[4]);
+			}
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+	}
 
-						} else if (receivedSentence.startsWith("-Count")) {
+	private static void sendButtonAction() {
+		try {
+			String message = clientMessages.getText();
+			if (!privateMessage.getText().isEmpty()) {
+				// Cannot sent private message to yourself
+				if (privateMessage.getText().equals(clientNameField.getText()))
+					return;
 
-							// String[] strings = receivedSentence.split(",");
-							// countLabel.setText("Number of connected clients to the server: " + strings[1]
-							// + "\n");
+				message = "@" + privateMessage.getText() + " " + message;
+			}
+			outToServer.writeBytes(message + "\n");
+			clientMessages.setText("");
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+	}
 
-						}
+	private static void listenForServerMessages() {
+		try {
+			String messageFromServer;
+			while ((messageFromServer = inFromServer.readLine()) != null) {
+				final String originalMessage = messageFromServer;
+
+				if (originalMessage.startsWith("-Date;")) {
+					String finalMessage = originalMessage.substring("-Date;".length());
+					SwingUtilities.invokeLater(() -> receivedTextArea.append(finalMessage + "\n"));
+
+				} else if (originalMessage.startsWith("-Names,")) {
+					String[] names = originalMessage.split(",");
+
+					StringBuilder namesText = new StringBuilder();
+					for (int i = 1; i < names.length; i++) {
+						namesText.append(names[i]).append("\n");
 					}
 
-				} catch (Exception ex) {
+					SwingUtilities.invokeLater(() -> connectedClientsTextArea.setText(namesText.toString()));
 
+				} else if (originalMessage.startsWith("-Count,")) {
+					String finalMessage = originalMessage.substring("-Count,".length());
+					SwingUtilities
+							.invokeLater(() -> connectedClientsLabel.setText("Connected Clients: " + finalMessage));
+
+				} else if (originalMessage.startsWith("-Message,")) {
+					String finalMessage = originalMessage.substring("-Message,".length());
+					SwingUtilities.invokeLater(() -> receivedTextArea.append(finalMessage + "\n"));
+
+				} else {
+					SwingUtilities.invokeLater(() -> receivedTextArea.append(originalMessage + "\n"));
 				}
 
 			}
-		}).start();
+		} catch (IOException e) {
+			if (e instanceof SocketException && e.getMessage().equals("Socket closed")) {
+				// Handle if this was the last connected client
 
+			} else {
+				e.printStackTrace();
+			}
+		}
 	}
 
 }

@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.Date;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
@@ -21,7 +20,7 @@ public class ChatServer {
 		ServerSocket welcomeSocket = new ServerSocket(6789);
 
 		new Thread(() -> acceptClients(welcomeSocket)).start();
-		new Thread(ChatServer::updateClientCountAndDate).start();
+		new Thread(() -> updateClientCountAndDate()).start();
 	}
 
 	private static void setupGUI() {
@@ -53,7 +52,7 @@ public class ChatServer {
 								clientName, Clients);
 						Clients.add(newClient);
 						newClient.start();
-						updateClientCountLabel();
+						Clients.notify(); // Notify the waiting threads of a new connection
 					}
 				}
 			} catch (Exception ex) {
@@ -68,25 +67,32 @@ public class ChatServer {
 
 	public static void updateClientCountLabel() {
 		SwingUtilities.invokeLater(() -> {
-			connectionStatusLabel.setText(clientCount + (clientCount == 1 ? " Client" : " Clients") + " Connected");
+			clientCount = Clients.size();
+			connectionStatusLabel.setText(clientCount + (clientCount <= 1 ? " Client" : " Clients") + " Connected");
 			connectionStatusLabel.setForeground(clientCount > 0 ? Color.blue : Color.red);
 		});
+	}
+
+	public static void sendDateAndCountToAllClients() throws IOException {
+		for (ClientServiceThread client : Clients) {
+			client.sendDateAndCount();
+		}
 	}
 
 	private static void updateClientCountAndDate() {
 		while (true) {
 			try {
 				synchronized (Clients) {
-					for (ClientServiceThread client : Clients) {
-						try {
-							client.sendDateAndCount();
-						} catch (IOException e) {
-							System.out.println("Error sending date and count to client: " + e.getMessage());
-							// Handle errors if a client has disconnected
-						}
+					try {
+						sendDateAndCountToAllClients();
+						updateClientCountLabel();
+					} catch (IOException e) {
+						System.out.println("Error sending date and count to client: " + e.getMessage());
+						// Handle errors if a client has disconnected
 					}
+
+					Clients.wait();
 				}
-				Thread.sleep(1000);
 			} catch (InterruptedException ex) {
 				System.out.println("Update client count and date thread interrupted: " + ex.getMessage());// Handle the
 																											// interrupt
